@@ -9,7 +9,8 @@ Vamos instalar as bibliotecas necessárias para criptografia e para trabalhar co
 ```
 sudo apt update
 sudo apt install libsodium-dev
-sudo apt-get install libjansson-dev
+sudo apt install libcurl4-openssl-dev
+sudo apt install libjansson-dev
 ```
 
 ## Compilar
