@@ -22,6 +22,6 @@ make rebuild
 
 ```
 ./inspercoin criar carteira vida_boa
-./inspercoin enviar 0.01 da carteira vida_boa para endereco 6E1E8F99287DFAF5739EF4404922611E9712798BE9AADC82EB92B115E9C1A6C90000000000000000000000000000000000000000000000000000000000000000 com recompensa 0.001
+./inspercoin enviar 0.01 da carteira vida_boa para endereco E9AE8BF0871DB8F50E58DEF4C2D230B31B72155D97978A486FC6469053BAD23A com recompensa 0.001
 ```
 
