@@ -266,8 +266,8 @@ unsigned char *get_block_hash(long nonce, unsigned char *previous_hash, char *ti
     // printf("%ld\n", nonce); // Faz print do nonce
     sprintf(str_nouce, "%020ld", nonce);
     unsigned char *message = construct_block_message(str_nouce, previous_hash, time_str, amount, address_from, address_to, reward);
-    unsigned char *hash = malloc(crypto_generichash_BYTES);
-    crypto_generichash(hash, sizeof hash, (const unsigned char *)message, strlen((char *)message), NULL, 0);
+    unsigned char *hash = malloc(crypto_sign_BYTES);
+    crypto_generichash(hash, crypto_sign_BYTES, (const unsigned char *)message, strlen((char *)message), NULL, 0);
     unsigned char *hex_hash = signature_to_hex(hash);
     free(message);
     free(hash);
