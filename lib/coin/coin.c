@@ -16,6 +16,12 @@
 #define COIN_AMOUNT_SIZE 2500
 #define TIME_STR_SIZE 22
 
+struct response
+{
+    char *memory;
+    size_t size;
+};
+
 char *timestring()
 {
     time_t current_time;
@@ -198,13 +204,25 @@ void get_transaction_info(json_t *json_array,
     // json_decref(root);
 }
 
-size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
+// https://everything.curl.dev/libcurl/callbacks/write
+static size_t
+write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
-    char *data = (char *)userdata;
+    struct response *mem = (struct response *)userp;
 
-    memcpy(data, ptr, realsize);
-    data[realsize] = '\0';
+    char *ptr = realloc(mem->memory, mem->size + realsize + 1);
+    if (!ptr)
+    {
+        /* out of memory! */
+        printf("not enough memory (realloc returned NULL)\n");
+        exit(EXIT_FAILURE);
+    }
+
+    mem->memory = ptr;
+    memcpy(&(mem->memory[mem->size]), contents, realsize);
+    mem->size += realsize;
+    mem->memory[mem->size] = 0;
 
     return realsize;
 }
@@ -214,7 +232,8 @@ char *get_transaction()
 
     CURL *curl;
     CURLcode res;
-    char *data = malloc(JSON_TEXT_MAX * sizeof(char));
+    struct response chunk = {.memory = malloc(0),
+                             .size = 0};
     char *url = "http://sishard.insper-comp.com.br/inspercoin/transactions"; // Você vai precisar alterar aqui!
 
     curl = curl_easy_init();
@@ -223,7 +242,7 @@ char *get_transaction()
     {
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 
         res = curl_easy_perform(curl);
 
@@ -236,7 +255,7 @@ char *get_transaction()
         curl_easy_cleanup(curl);
     }
 
-    return data;
+    return chunk.memory;
 }
 
 unsigned char *get_last_block_hash()
