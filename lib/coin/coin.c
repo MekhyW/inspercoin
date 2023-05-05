@@ -319,11 +319,11 @@ void mine_transaction()
             if (hash[i] != '0')
             {
                 go_on = 1;
+                free(hash);
                 break;
             }
         }
         nonce += 1;
-        free(hash);
     }
     nonce -= 1;
 
