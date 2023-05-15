@@ -11,10 +11,31 @@
 #include "lib/key/key.h"
 #include "lib/coin/coin.h"
 
+void update_env()
+{
+    FILE *file;
+    char line[256];
+    char variable[256];
+    char value[256];
+    file = fopen("config.ic", "r");
+    if (file == NULL)
+    {
+        fprintf(stderr, "Error: config.ic file not found!\n");
+        exit(EXIT_FAILURE);
+    }
+    while (fgets(line, sizeof(line), file))
+    {
+        sscanf(line, "%[^=]=%s", variable, value);
+        setenv(variable, value, 1);
+        //printf("Variable %s is set to %s\n", variable, value);
+    }
+    fclose(file);
+}
+
 int main(int argc, char *argv[])
 {
     init_keyring_env();
-
+    update_env();
     if (argc == 4 &&
         strcmp(argv[1], "criar") == 0 &&
         strcmp(argv[2], "carteira") == 0)

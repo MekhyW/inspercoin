@@ -61,8 +61,9 @@ void broadcast_transaction(char *date_transaction,
         char *args = malloc(COIN_ARGS_SIZE * sizeof(char));
 
         printf("\n\nSS: [%s]\n\n", signature);
-
-        sprintf(args, "http://sishard.insper-comp.com.br/inspercoin/broadcast/transaction?date_transaction=%s&address_from=%s&address_to=%s&amount=%s&reward=%s&signature=%s",
+        char* INSPER_COIN_URL = getenv("INSPER_COIN_URL");
+        sprintf(args, "%sbroadcast/transaction?date_transaction=%s&address_from=%s&address_to=%s&amount=%s&reward=%s&signature=%s",
+                INSPER_COIN_URL,
                 date_transaction,
                 address_from,
                 address_to,
@@ -234,7 +235,10 @@ char *get_transaction()
     CURLcode res;
     struct response chunk = {.memory = malloc(0),
                              .size = 0};
-    char *url = "http://sishard.insper-comp.com.br/inspercoin/transactions"; // Você vai precisar alterar aqui!
+    char* INSPER_COIN_URL = getenv("INSPER_COIN_URL");
+    char *url = malloc(sizeof(char) * (strlen(INSPER_COIN_URL) + 13));
+    strcpy(url, INSPER_COIN_URL);
+    strcat(url, "transactions");
 
     curl = curl_easy_init();
 
@@ -384,8 +388,9 @@ void broadcast_block(
         char *args = malloc(COIN_ARGS_SIZE * sizeof(char));
         printf("ID [%ld]\n", id_transaction);
 
-        // Vai precisar alterar esta URL!
-        sprintf(args, "http://sishard.insper-comp.com.br/inspercoin/broadcast/block?hash_=%s&previous_hash=%s&miner_address=%s&id_transaction=%ld&nonce=%s",
+        char* INSPER_COIN_URL = getenv("INSPER_COIN_URL");
+        sprintf(args, "%sbroadcast/block?hash_=%s&previous_hash=%s&miner_address=%s&id_transaction=%ld&nonce=%s",
+                INSPER_COIN_URL,
                 hash,
                 previous_hash,
                 miner_address,
