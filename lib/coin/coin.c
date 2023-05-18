@@ -8,6 +8,7 @@
 #include "../key/key.h"
 #include "coin.h"
 #include <unistd.h> //sleep
+#include <sys/wait.h>
 
 #define MESSAGE_LEN 165
 #define MESSAGE_LEN_BLOCK 1000
@@ -228,44 +229,50 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
     return realsize;
 }
 
-char *get_transaction()
+char *get_request(char *route, int route_size)
 {
-
     CURL *curl;
     CURLcode res;
-    struct response chunk = {.memory = malloc(0),
-                             .size = 0};
-    char* INSPER_COIN_URL = getenv("INSPER_COIN_URL");
-    char *url = malloc(sizeof(char) * (strlen(INSPER_COIN_URL) + 13));
-    strcpy(url, INSPER_COIN_URL);
-    strcat(url, "transactions");
-
+    struct response chunk = {.memory = malloc(0), .size = 0};
     curl = curl_easy_init();
-
+    char* url = malloc(sizeof(char) * (strlen(getenv("INSPER_COIN_URL")) + route_size));
+    strcpy(url, getenv("INSPER_COIN_URL"));
+    strncat(url, route, route_size);
     if (curl)
     {
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-
         res = curl_easy_perform(curl);
-
+        free(url);
         if (res != CURLE_OK)
         {
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
             exit(EXIT_FAILURE);
         }
-
         curl_easy_cleanup(curl);
     }
-
     return chunk.memory;
+}
+
+char *get_transaction()
+{
+    char *json_text = get_request("transactions", 13);
+    return json_text;
 }
 
 unsigned char *get_last_block_hash()
 {
-    // Vai ter que alterar para chamar API!
-    return (unsigned char *)"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+    char *json_text = get_request("blockchain", 10);
+    json_t *root = json_loads(json_text, 0, NULL);
+    if (!root)
+    {
+        fprintf(stderr, "error: on line %d: %s\n", __LINE__, "Failed to parse JSON");
+        exit(EXIT_FAILURE);
+    }
+    json_t *block = json_array_get(root, 0);
+    unsigned char *hash = json_string_value(json_object_get(block, "hash"));
+    return hash;
 }
 
 unsigned char *construct_block_message(char *str_nouce, unsigned char *previous_hash, char *time_str, char *amount, unsigned char *address_from, unsigned char *address_to, char *reward)
@@ -298,28 +305,23 @@ unsigned char *get_block_hash(long nonce, unsigned char *previous_hash, char *ti
     return hex_hash;
 }
 
-void mine_transaction()
+void mine_transaction(char wallet_name[65], size_t i_transaction)
 {
-    // Você vai precisar alterar aqui!
-    unsigned char miner_address[65] = "4B904AEACACD702908BF822AB1A0FBF0A571C3B2E38C22DD5D67DBC15993D1A7";
     char *json_text = get_transaction();
-    // printf("\njson_text: %s\n\n", json_text); // Json text, descomente se quiser ver
-
+    //printf("\njson_text: %s\n\n", json_text);
     size_t n_transactions;
     json_t *json_array = parse_transaction(json_text, &n_transactions);
-    // printf("NT %d\n", n_transactions); // qtde transações retornadas, descomente se quiser ver
-
+    //printf("NT %d\n", n_transactions);
     long id_transaction;
     char *date_transaction;
     unsigned char *address_from;
     unsigned char *address_to;
     char *amount;
-
+    unsigned char miner_address[65];
     char *reward;
     unsigned char *signature;
-
     get_transaction_info(json_array,
-                         0,
+                         i_transaction,
                          &id_transaction,
                          &date_transaction,
                          &address_from,
@@ -329,7 +331,18 @@ void mine_transaction()
                          &signature);
     long nonce = 0;
     unsigned char *hash;
-    int diffic = 5; // Você vai precisar alterar aqui para pegar a dificuldade pela API!
+    int diffic;
+
+    //read file {wallet_name}.public and save in miner_address
+    t_key *public_key = load_public_key(wallet_name);
+    unsigned char *public_key_hex = key_to_hex(public_key);
+    strcpy((char *)miner_address, (char *)public_key_hex);
+    free(public_key);
+    free(public_key_hex);
+
+    //update diffic with GET request to {INSPER_COIN_URL}blockchain/difficulty
+    sscanf(get_request("blockchain/difficulty", 22), "%d", &diffic);
+    
     int go_on = 1;
     unsigned char *previous_hash = get_last_block_hash();
     while (go_on)
@@ -367,6 +380,31 @@ void mine_transaction()
     free(date_transaction);
     free(address_from);
     free(address_to);
+}
+
+void mine_n_transactions(char wallet_name[65], char *n, char *processes)
+{
+    int n_per_proc = atoi(n) / atoi(processes);
+    if (n_per_proc == 0)
+    {
+        n_per_proc = 1;
+        processes = n;
+    }
+    for (int i = 0; i < atoi(processes); i++)
+    {
+        if (fork() == 0)
+        {
+            for (int j = i; j < i+n_per_proc; j++)
+            {
+                mine_transaction(wallet_name, j);
+            }
+            exit(EXIT_SUCCESS);
+        }
+    }
+    for (int i = 0; i < atoi(processes); i++)
+    {
+        wait(NULL);
+    }
 }
 
 void broadcast_block(

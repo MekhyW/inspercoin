@@ -31,6 +31,7 @@ int validate_block(char *date_transaction,
 char *format_amount(double amount);
 char *timestring();
 void send_money(char *amount, char *wallet, unsigned char *address_to, char *reward);
-void mine_transaction();
+void mine_transaction(char wallet_name[65], size_t i_transaction);
+void mine_n_transactions(char wallet_name[65], char *n, char *processes);
 
 #endif
