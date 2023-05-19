@@ -407,6 +407,31 @@ void mine_n_transactions(char wallet_name[65], char *n, char *processes)
     }
 }
 
+void mine_continuous(char wallet_name[65], char *processes)
+{
+    signal(SIGINT, sig_handler);
+    int i_transaction = 0;
+    for (int i = 0; i < atoi(processes); i++)
+    {
+        if (fork() == 0)
+        {
+            mine_transaction(wallet_name, i_transaction);
+            exit(EXIT_SUCCESS);
+        }
+        i_transaction++;
+    }
+    while (1)
+    {
+        wait(NULL);
+        if (fork() == 0)
+        {
+            mine_transaction(wallet_name, i_transaction);
+            exit(EXIT_SUCCESS);
+        }
+        i_transaction++;
+    }
+}
+
 void broadcast_block(
     unsigned char *hash,
     unsigned char *previous_hash,

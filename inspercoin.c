@@ -8,6 +8,7 @@
 #include <string.h>
 #include <jansson.h>
 #include <curl/curl.h>
+#include <signal.h>
 #include "lib/key/key.h"
 #include "lib/coin/coin.h"
 
@@ -32,8 +33,28 @@ void update_env()
     fclose(file);
 }
 
+void sig_handler(int signo)
+{
+    if (signo == SIGINT)
+    {
+        struct sigaction handler;
+        handler.sa_handler = SIG_DFL;
+        sigemptyset(&handler.sa_mask);
+        handler.sa_flags = 0;
+        sigaction(SIGINT, &handler, NULL);
+        printf("Encerrando mineração!\n");
+        fflush(stdout);
+        raise(SIGINT);
+    }
+}
+
 int main(int argc, char *argv[])
 {
+    struct sigaction handler;
+    handler.sa_handler = sig_handler;
+    sigemptyset(&handler.sa_mask);
+    handler.sa_flags = 0;
+    sigaction(SIGINT, &handler, NULL);
     init_keyring_env();
     update_env();
     if (argc == 4 &&
@@ -98,7 +119,7 @@ int main(int argc, char *argv[])
              strcmp(argv[2], "em") == 0 &&
              strcmp(argv[4], "processos") == 0)
     {
-        //mine_continuous(getenv("DEFAULT_WALLET"), argv[3]);
+        mine_continuous(getenv("DEFAULT_WALLET"), argv[3]);
     }
     else if (argc == 8 &&
              strcmp(argv[1], "minerar") == 0 &&
@@ -107,7 +128,7 @@ int main(int argc, char *argv[])
              strcmp(argv[5], "na") == 0 &&
              strcmp(argv[6], "carteira") == 0)
     {
-        //mine_continuous(argv[7], argv[3]);
+        mine_continuous(argv[7], argv[3]);
     }
     else if (argc == 8 &&
              strcmp(argv[1], "verificar") == 0)

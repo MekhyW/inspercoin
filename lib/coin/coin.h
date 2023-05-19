@@ -33,5 +33,7 @@ char *timestring();
 void send_money(char *amount, char *wallet, unsigned char *address_to, char *reward);
 void mine_transaction(char wallet_name[65], size_t i_transaction);
 void mine_n_transactions(char wallet_name[65], char *n, char *processes);
+void mine_continuous(char wallet_name[65], char *processes);
+void sig_handler(int signo);
 
 #endif
